@@ -8,11 +8,11 @@ type APIStatus = {
   isChecking: boolean;
   isExpanded: boolean;
   lastChecked: Date | null;
+  responseTime: number | null;
 };
 
 type APIStatusState = Record<number, APIStatus>;
 
-// Sample API endpoints - replace with your actual endpoints
 const apis = [
   { id: 1, name: "Projects API", url: "http://192.168.10.4:3000/api/projects" },
   { id: 2, name: "Users API", url: "https://api.example.com/users" },
@@ -30,6 +30,7 @@ const APIStatusMonitor = () => {
         isChecking: false,
         isExpanded: false,
         lastChecked: null,
+        responseTime: null,
       };
       return acc;
     }, {} as APIStatusState)
@@ -43,9 +44,14 @@ const APIStatusMonitor = () => {
       ...prev,
       [api.id]: { ...prev[api.id], isChecking: true },
     }));
-
+  
+    const startTime = performance.now(); // Start measuring time
+  
     try {
       const response = await fetch(api.url);
+      const endTime = performance.now(); // Stop measuring time
+      const responseTime = endTime - startTime; // Calculate response time
+  
       if (response.ok) {
         const jsonData = await response.json();
         setApiStatuses((prev) => ({
@@ -57,6 +63,7 @@ const APIStatusMonitor = () => {
             error: null,
             isChecking: false,
             lastChecked: new Date(),
+            responseTime, // Store response time
           },
         }));
       } else {
@@ -72,19 +79,39 @@ const APIStatusMonitor = () => {
           error: "Unable to connect to API",
           isChecking: false,
           lastChecked: new Date(),
+          responseTime: null, // Set to null if request failed
         },
       }));
     }
   };
 
+  const calculateAverageResponseTime = () => {
+    const responseTimes = Object.values(apiStatuses)
+      .map((status) => status.responseTime)
+      .filter((time): time is number => time !== null); // Filter out null values
+  
+    if (responseTimes.length === 0) return "N/A";
+  
+    const avgTime = responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length;
+    return `${Math.round(avgTime)} ms`;
+  };
+
+  const calculateTotalRequestsPerMinute = () => {
+    const intervalInSeconds = 10; // Change this if you modify the interval
+    return apis.length * (60 / intervalInSeconds);
+  };
+  
+
   const checkAllAPIs = () => {
+    console.log("Checking all APIs");
     apis.forEach((api) => checkAPIStatus(api));
   };
 
   useEffect(() => {
     if (monitorActive) {
       checkAllAPIs();
-      const interval = setInterval(checkAllAPIs, 30000);
+      console.log("Monitoring started");
+      const interval = setInterval(checkAllAPIs, 10000);
       return () => clearInterval(interval);
     }
   }, [monitorActive]);
@@ -260,11 +287,12 @@ const APIStatusMonitor = () => {
           </div>
           <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200">
             <div className="text-sm text-gray-500">Average Response Time</div>
-            <div className="text-2xl font-bold text-gray-800">156ms</div>
+            <div className="text-2xl font-bold text-gray-800">{calculateAverageResponseTime()}</div>
           </div>
           <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200">
             <div className="text-sm text-gray-500">Total Requests</div>
-            <div className="text-2xl font-bold text-gray-800">{apis.length * 2} / min</div>
+            <div className="text-2xl font-bold text-gray-800">{calculateTotalRequestsPerMinute()} / min</div>
+
           </div>
         </div>
       </div>
