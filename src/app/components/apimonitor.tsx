@@ -14,10 +14,10 @@ type APIStatusState = Record<number, APIStatus>;
 
 // Sample API endpoints - replace with your actual endpoints
 const apis = [
-  { id: 1, name: "Users API", url: "http://192.168.10.4:3000/api/projects" },
-  { id: 2, name: "Products API", url: "https://api.example.com/products" },
-  { id: 3, name: "Orders API", url: "http://192.168.10.4:3000/api/health" },
-  { id: 4, name: "Authentication API", url: "https://api.example.com/auth" }
+  { id: 1, name: "Projects API", url: "http://192.168.10.4:3000/api/projects" },
+  { id: 2, name: "Users API", url: "https://api.example.com/users" },
+  { id: 3, name: "System Health API", url: "http://192.168.10.4:3000/api/health" },
+  { id: 4, name: "Authentication API", url: "https://api.example.com/auth" },
 ];
 
 const APIStatusMonitor = () => {
@@ -38,33 +38,10 @@ const APIStatusMonitor = () => {
   // State to control whether monitoring is active
   const [monitorActive, setMonitorActive] = useState<boolean>(true);
 
-  // Function to run a CLI command via the API route
-  const runCLICommand = async (action: "connect" | "connect") => {
-    try {
-      const response = await fetch("/api/run-cli", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ action }),
-      });
-      if (!response.ok) {
-        const errorRes = await response.json();
-        throw new Error(errorRes.error || "Unknown error");
-      }
-      const result = await response.json();
-      console.log("CLI command result:", result);
-      alert(`Command Output:\n${result.stdout || result.error}`);
-    } catch (error) {
-      console.error("Error running CLI command:", error);
-      alert("Error running CLI command. Check the console for details.");
-    }
-  };
-
   const checkAPIStatus = async (api: { id: number; name?: string; url: string }) => {
     setApiStatuses((prev) => ({
       ...prev,
-      [api.id]: { ...prev[api.id], isChecking: true }
+      [api.id]: { ...prev[api.id], isChecking: true },
     }));
 
     try {
@@ -79,8 +56,8 @@ const APIStatusMonitor = () => {
             data: jsonData,
             error: null,
             isChecking: false,
-            lastChecked: new Date()
-          }
+            lastChecked: new Date(),
+          },
         }));
       } else {
         throw new Error("API request failed");
@@ -94,14 +71,14 @@ const APIStatusMonitor = () => {
           data: null,
           error: "Unable to connect to API",
           isChecking: false,
-          lastChecked: new Date()
-        }
+          lastChecked: new Date(),
+        },
       }));
     }
   };
 
   const checkAllAPIs = () => {
-    apis.forEach(api => checkAPIStatus(api));
+    apis.forEach((api) => checkAPIStatus(api));
   };
 
   useEffect(() => {
@@ -113,25 +90,26 @@ const APIStatusMonitor = () => {
   }, [monitorActive]);
 
   const toggleExpand = (apiId: number) => {
-    setApiStatuses(prev => ({
+    setApiStatuses((prev) => ({
       ...prev,
-      [apiId]: { ...prev[apiId], isExpanded: !prev[apiId].isExpanded }
+      [apiId]: { ...prev[apiId], isExpanded: !prev[apiId].isExpanded },
     }));
   };
 
-  // Toggle monitor state and run the proper command
+  // Toggle monitor state and call the proper mpp-node method from mppConnector.js
   const toggleMonitor = async () => {
     if (monitorActive) {
-      // When active, disconnect
-      await runCLICommand("connect");
+      // When active, disconnect via API
+      await fetch('/api/mpp?action=disconnect');
       setMonitorActive(false);
     } else {
-      // When inactive, connect
-      await runCLICommand("connect");
+      // When inactive, connect via API
+      await fetch('/api/mpp?action=connect');
       setMonitorActive(true);
       checkAllAPIs(); // Optionally trigger an immediate API check
     }
   };
+  
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
@@ -142,7 +120,12 @@ const APIStatusMonitor = () => {
             <div className="flex items-center gap-2">
               {/* Server icon */}
               <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"
+                />
               </svg>
               <span className="text-xl text-black font-semibold">API Status Dashboard</span>
             </div>
@@ -154,7 +137,12 @@ const APIStatusMonitor = () => {
                 title="Refresh APIs"
               >
                 <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
                 </svg>
               </button>
               {/* Connect/Disconnect Button */}
@@ -163,13 +151,18 @@ const APIStatusMonitor = () => {
                 className="p-2 hover:bg-gray-100 rounded-full transition-colors"
                 title={monitorActive ? "Disconnect" : "Connect"}
               >
-                <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   {monitorActive ? (
-                    // Disconnect icon (example: power off)
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18.364 5.636l-1.414 1.414A8 8 0 015.636 16.95l-1.414 1.414M12 8v4m0 4h.01" />
+                    <>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 2v10" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16.24 7.76a6 6 0 11-8.48 0" />
+                      <line x1="4" y1="4" x2="20" y2="20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                    </>
                   ) : (
-                    // Connect icon (example: power on)
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6.75 12a5.25 5.25 0 0110.5 0m-10.5 0H4m13.5 0h2.25" />
+                    <>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 2v10" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16.24 7.76a6 6 0 11-8.48 0" />
+                    </>
                   )}
                 </svg>
               </button>
@@ -179,24 +172,28 @@ const APIStatusMonitor = () => {
 
         {/* API Status Cards */}
         <div className="grid gap-4">
-          {apis.map(api => {
+          {apis.map((api) => {
             const status = apiStatuses[api.id];
             return (
               <div key={api.id} className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
                 <div className="p-4 cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => toggleExpand(api.id)}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                      <div className={`
-                        relative flex items-center justify-center
-                        w-10 h-10 rounded-full
-                        ${status.isConnected ? 'bg-green-100' : 'bg-red-100'}
-                        transition-colors duration-500
-                      `}>
-                        <div className={`
-                          absolute inset-0 rounded-full
-                          ${status.isConnected ? 'bg-green-500' : 'bg-red-500'}
-                          animate-pulse opacity-20
-                        `} />
+                      <div
+                        className={`
+                          relative flex items-center justify-center
+                          w-10 h-10 rounded-full
+                          ${status.isConnected ? "bg-green-100" : "bg-red-100"}
+                          transition-colors duration-500
+                        `}
+                      >
+                        <div
+                          className={`
+                            absolute inset-0 rounded-full
+                            ${status.isConnected ? "bg-green-500" : "bg-red-500"}
+                            animate-pulse opacity-20
+                          `}
+                        />
                         {status.isConnected ? (
                           <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
@@ -213,10 +210,15 @@ const APIStatusMonitor = () => {
                       </div>
                     </div>
                     <div className="flex items-center gap-4">
-                      <span className={`text-sm ${status.isConnected ? 'text-green-600' : 'text-red-600'}`}>
-                        {status.isConnected ? 'Secured' : 'Failed'}
+                      <span className={`text-sm ${status.isConnected ? "text-green-600" : "text-red-600"}`}>
+                        {status.isConnected ? "Secured" : "Not Connected"}
                       </span>
-                      <svg className={`w-5 h-5 text-gray-400 transition-transform ${status.isExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg
+                        className={`w-5 h-5 text-gray-400 transition-transform ${status.isExpanded ? "rotate-180" : ""}`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
                       </svg>
                     </div>
@@ -253,7 +255,7 @@ const APIStatusMonitor = () => {
           <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200">
             <div className="text-sm text-gray-500">Secured APIs</div>
             <div className="text-2xl font-bold text-gray-800">
-              {Object.values(apiStatuses).filter(status => status.isConnected).length} / {apis.length}
+              {Object.values(apiStatuses).filter((status) => status.isConnected).length} / {apis.length}
             </div>
           </div>
           <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200">
